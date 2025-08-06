@@ -1,45 +1,39 @@
-from sqlalchemy import create_engine, Column, Integer, DateTime
+from datetime import datetime
+from sqlalchemy import Column, DateTime, Integer, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
-from fastapi import Depends
 from app.core.config import get_settings
+import urllib.parse
+import logging
 
+logger = logging.getLogger(__name__)
 
-# Create SQLAlchemy declarative base
 Base = declarative_base()
 
 
 def get_engine():
     try:
         settings = get_settings()
-        return create_engine(settings.DATABASE_URL)
+        logger.info(f"""Attempting to connect to DATABASE_URL:
+                    {settings.DATABASE_URL}""")
+        parsed_url = urllib.parse.urlparse(settings.DATABASE_URL)
+        logger.info(f"""Parsed DATABASE_URL: scheme={parsed_url.scheme},
+                    host={parsed_url.hostname}, port={parsed_url.port},
+                    path={parsed_url.path}""")
+        if parsed_url.path != '/library_db':
+            raise ValueError(f"""Invalid database name in DATABASE_URL:
+                             {parsed_url.path}, expected '/library_db'""")
+        engine = create_engine(settings.DATABASE_URL, echo=True, connect_args={'dbname': 'library_db'})
+        conn = engine.connect()
+        logger.info(f"Successfully connected to database: {conn}")
+        conn.close()
+        return engine
     except Exception as e:
-        print(f"Error creating engine: {e}")
+        logger.error(f"Error creating engine: {e}")
         raise
 
 
-class AbstractBase(Base):
-    """Base class for SQLAlchemy models with common fields."""
-    __abstract__ = True
-    id = Column(Integer, primary_key=True, index=True,
-                doc="Unique identifier for the record")
-    created_at = Column(DateTime, default=datetime.now,
-                        doc="Timestamp when the record was created")
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now,
-                        doc="Timestamp when the record was last updated")
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}(id={self.id})>"
-
-
-# Database engine and session setup
-engine = create_engine(get_settings().DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
 def get_db():
-    """Dependency to provide a database session."""
     engine = get_engine()
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
@@ -49,6 +43,8 @@ def get_db():
         db.close()
 
 
-def get_db_session(db: SessionLocal = Depends(get_db)):
-    """Helper to get the database session for use in services."""
-    return db
+class AbstractBase(Base):
+    __abstract__ = True
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

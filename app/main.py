@@ -1,16 +1,32 @@
 from fastapi import FastAPI
-from app.models.base import get_engine
-from app.api.v1.router import router as v1_router
-from app.api.v2.router import router as v2_router
+from app.models.base import get_engine, Base
+from app.api.v1.endpoints.borrow import router as borrow_router
+from app.api.v1.endpoints.auth import router as auth_router
+import logging
 
-app = FastAPI(title="Library Management System")
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+logger.info("Including borrow_router")
+app.include_router(borrow_router, prefix="/api/v1")
+logger.info("Including auth_router")
+app.include_router(auth_router, prefix="/api/v1")
 
 
-# Initialize database tables
 @app.on_event("startup")
-def on_startup():
-    get_engine()
+async def startup_event():
+    """Initialize database on startup."""
+    try:
+        engine = get_engine()
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Database initialization error: {e}")
+        raise
 
 
-app.include_router(v1_router, prefix="/v1")
-app.include_router(v2_router, prefix="/v2")
+@app.get("/")
+async def root():
+    logger.info("Root endpoint accessed")
+    return {"message": "Library Management System"}

@@ -1,20 +1,22 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from datetime import datetime
-import hashlib
-
+from sqlalchemy import Column, Integer, String
 from app.models.base import AbstractBase
+from passlib.context import CryptContext
+
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class Member(AbstractBase):
-    """Represents a library member."""
     __tablename__ = "members"
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False, unique=True)
+    password_hash = Column(String, nullable=False)
 
-    email = Column(String(255), unique=True, nullable=False,
-                   index=True, doc="Member's email address")
-    name = Column(String(100), nullable=False, doc="Member's full name")
-    hashed_password = Column(String(255), nullable=False,
-                             doc="Hashed password for authentication")
+    def set_password(self, password: str):
+        self.password_hash = pwd_context.hash(password)
 
-    borrows = relationship("Borrow", back_populates="member")
+    def verify_password(self, password: str) -> bool:
+        return pwd_context.verify(password, self.password_hash)
+
+    class Config:
+        from_attributes = True
