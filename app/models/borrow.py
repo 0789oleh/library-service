@@ -4,9 +4,6 @@ from app.models.base import AbstractBase
 from datetime import datetime
 
 
-book = relationship("Book", back_populates="borrows")
-
-
 class Borrow(AbstractBase):
     __tablename__ = "borrows"
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)

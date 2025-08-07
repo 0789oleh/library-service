@@ -22,23 +22,19 @@ async def authenticate_member(db: Session, email: str,
     return member
 
 
-async def create_access_token(data: dict) -> str:
+def create_access_token(data: dict) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=30)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY,
-                             algorithm="HS256")
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
     return encoded_jwt
 
 
-async def login_member(login_request: LoginRequest,
-                       db: Session = Depends()) -> TokenResponse:
+async def login_member(login_request: LoginRequest, db: Session = Depends()) -> TokenResponse:
     """Log in a member and return a JWT token."""
-    member = await authenticate_member(db, login_request.email,
-                                       login_request.password)
+    member = await authenticate_member(db, login_request.email, login_request.password)
     if not member:
-        from fastapi import HTTPException
         raise HTTPException(status_code=401, detail="Invalid credentials")
     access_token = create_access_token(data={"sub": member.email})
     return TokenResponse(access_token=access_token, token_type="bearer")
