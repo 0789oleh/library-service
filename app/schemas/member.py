@@ -1,20 +1,16 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel
 
 
-class MemberBase(BaseModel):
-    """Base schema for member-related operations."""
-    email: EmailStr = Field(..., description="Member's email address")
-    name: str = Field(..., description="Member's full name", max_length=100)
+class MemberCreate(BaseModel):
+    name: str
+    email: str
+    password: str
 
 
-class MemberCreate(MemberBase):
-    """Schema for creating a new member."""
-    password: str = Field(..., description="Member's password", min_length=8)
-
-
-class MemberResponse(MemberBase):
-    """Schema for returning member details."""
+class MemberResponse(BaseModel):
     id: int
+    name: str
+    email: str
 
     class Config:
-        orm_mode = True  # Enable ORM mode for SQLAlchemy integration
+        from_attributes = True

@@ -25,4 +25,4 @@ class BorrowResponse(BaseModel):
                                               was sent (v2 only)''')
 
     class Config:
-        orm_mode = True  # Enable ORM mode for SQLAlchemy integration
+        from_attributes = True  # Enable ORM mode for SQLAlchemy integration

@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional
 
 
 class BookBase(BaseModel):
@@ -28,4 +27,4 @@ class BookResponse(BookBase):
                                   ge=0)
 
     class Config:
-        orm_mode = True  # Enable ORM mode for SQLAlchemy integration
+        from_attributes = True  # Enable ORM mode for SQLAlchemy integration

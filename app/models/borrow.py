@@ -1,19 +1,20 @@
-from sqlalchemy import Column, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.models.base import AbstractBase
+from datetime import datetime
+
+
+book = relationship("Book", back_populates="borrows")
 
 
 class Borrow(AbstractBase):
-    """Represents a book borrowing record."""
     __tablename__ = "borrows"
-
-    book_id = Column(Integer, ForeignKey("books.id"), nullable=False,
-                     doc="ID of the borrowed book")
-    member_id = Column(Integer, ForeignKey("members.id"), nullable=False,
-                       doc="ID of the borrowing member")
-    notification_sent = Column(Boolean, default=False,
-                               doc='''Whether email notification
-                                 was sent (v2 only)''')
-
-    book = relationship("Book", back_populates="borrows")
+    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
+    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
+    borrow_date = Column(DateTime, nullable=False, default=datetime.now)
+    return_date = Column(DateTime, nullable=True)
     member = relationship("Member", back_populates="borrows")
+    book = relationship("Book", back_populates="borrows")
+
+    class Config:
+        from_attributes = True

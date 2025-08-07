@@ -1,8 +1,9 @@
-from datetime import datetime
-from sqlalchemy import Column, DateTime, Integer, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import get_settings
+from datetime import datetime
+from sqlalchemy import Column, Integer, DateTime
 import urllib.parse
 import logging
 
@@ -23,7 +24,8 @@ def get_engine():
         if parsed_url.path != '/library_db':
             raise ValueError(f"""Invalid database name in DATABASE_URL:
                              {parsed_url.path}, expected '/library_db'""")
-        engine = create_engine(settings.DATABASE_URL, echo=True, connect_args={'dbname': 'library_db'})
+        engine = create_engine(settings.DATABASE_URL, echo=True,
+                               connect_args={'dbname': 'library_db'})
         conn = engine.connect()
         logger.info(f"Successfully connected to database: {conn}")
         conn.close()

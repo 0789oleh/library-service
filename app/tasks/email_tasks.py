@@ -23,6 +23,7 @@ def get_celery_app():
 
 app = get_celery_app()
 
+
 async def send_email(to_email: str, subject: str, body: str):
     settings = get_settings()
     message = EmailMessage()
@@ -46,23 +47,27 @@ async def send_email(to_email: str, subject: str, body: str):
         return {"error": str(e)}
 
 
-@app.task(name="app.tasks.email_tasks.send_borrow_email")
-def send_borrow_email(borrow_id: int):
+@app.task(name="app.tasks.email_tasks.send_borrow_email",
+          bind=True, max_retries=3)
+def send_borrow_email(self, borrow_id: int):
     settings = get_settings()
     try:
-        logger.info(f"""Attempting to connect to
-        DATABASE_URL: {settings.DATABASE_URL}""")
+        logger.info(f"""Attempting to connect to DATABASE_URL:
+                    {settings.DATABASE_URL}""")
         parsed_url = urllib.parse.urlparse(settings.DATABASE_URL)
         logger.info(f"""Parsed DATABASE_URL: scheme={parsed_url.scheme},
-        host={parsed_url.hostname}, port={parsed_url.port},
-        path={parsed_url.path}""")
+                    host={parsed_url.hostname}, port={parsed_url.port},
+                    path={parsed_url.path}""")
         if parsed_url.path != '/library_db':
-            raise ValueError(f"Invalid database name in DATABASE_URL: {parsed_url.path}, expected '/library_db'")
-        engine = create_engine(settings.DATABASE_URL, echo=True)
+            raise ValueError(f"""Invalid database name in DATABASE_URL:
+                             {parsed_url.path}, expected '/library_db'""")
+        engine = create_engine(settings.DATABASE_URL, echo=True,
+                               connect_args={'dbname': 'library_db'})
         conn = engine.connect()
         logger.info(f"Successfully connected to database: {conn}")
         conn.close()
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        SessionLocal = sessionmaker(autocommit=False,
+                                    autoflush=False, bind=engine)
         session = SessionLocal()
         try:
             borrow = session.query(Borrow).get(borrow_id)
@@ -75,9 +80,12 @@ def send_borrow_email(borrow_id: int):
                 logger.error("Member or book not found")
                 return {"error": "Member or book not found"}
             subject = f"Book Borrowed: {book.title}"
-            body = f"Dear {member.name},\n\nYou have borrowed '{book.title}' on {borrow.borrow_date}. Please return it by {borrow.borrow_date + timedelta(days=14)}.\n\nThank you."
+            body = f"""Dear {member.name},\n\nYou have borrowed '{book.title}'
+            on {borrow.borrow_date}.Please return it by
+            {borrow.borrow_date + timedelta(days=14)}.\n\nThank you."""
             send_email.delay(member.email, subject, body)
-            logger.info(f"Borrow email task triggered for borrow_id: {borrow_id}")
+            logger.info(f"""Borrow email task triggered
+                        for borrow_id: {borrow_id}""")
             return {"status": "Borrow email sent"}
         except Exception as e:
             logger.error(f"send_borrow_email error: {e}")
@@ -86,22 +94,26 @@ def send_borrow_email(borrow_id: int):
             session.close()
     except Exception as e:
         logger.error(f"Database connection error in send_borrow_email: {e}")
-        return {"error": str(e)}
+        self.retry(countdown=60, exc=e)
 
-@app.task(name="app.tasks.email_tasks.send_return_email")
-def send_return_email(borrow_id: int):
+
+@app.task(name="app.tasks.email_tasks.send_return_email",
+          bind=True, max_retries=3)
+def send_return_email(self, borrow_id: int):
     settings = get_settings()
     try:
-        logger.info(f"Attempting to connect to DATABASE_URL: {settings.DATABASE_URL}")
+        logger.info(f"""Attempting to connect to
+                    DATABASE_URL: {settings.DATABASE_URL}""")
         parsed_url = urllib.parse.urlparse(settings.DATABASE_URL)
         logger.info(f"Parsed DATABASE_URL: scheme={parsed_url.scheme}, host={parsed_url.hostname}, port={parsed_url.port}, path={parsed_url.path}")
         if parsed_url.path != '/library_db':
             raise ValueError(f"Invalid database name in DATABASE_URL: {parsed_url.path}, expected '/library_db'")
-        engine = create_engine(settings.DATABASE_URL, echo=True)
+        engine = create_engine(settings.DATABASE_URL, echo=True, connect_args={'dbname': 'library_db'})
         conn = engine.connect()
         logger.info(f"Successfully connected to database: {conn}")
         conn.close()
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        SessionLocal = sessionmaker(autocommit=False,
+                                    autoflush=False, bind=engine)
         session = SessionLocal()
         try:
             borrow = session.query(Borrow).get(borrow_id)
@@ -125,34 +137,28 @@ def send_return_email(borrow_id: int):
             session.close()
     except Exception as e:
         logger.error(f"Database connection error in send_return_email: {e}")
-        return {"error": str(e)}
+        self.retry(countdown=60, exc=e)
 
 
-@app.task(name="app.tasks.email_tasks.check_overdue_books")
-def check_overdue_books():
+@app.task(name="app.tasks.email_tasks.check_overdue_books",
+          bind=True, max_retries=3)
+def check_overdue_books(self):
     settings = get_settings()
     try:
-        logger.info(f"""Attempting to connect to
-                    DATABASE_URL: {settings.DATABASE_URL}""")
+        logger.info(f"Attempting to connect to DATABASE_URL: {settings.DATABASE_URL}")
         parsed_url = urllib.parse.urlparse(settings.DATABASE_URL)
-        logger.info(f"""Parsed DATABASE_URL: scheme={parsed_url.scheme},
-                    host={parsed_url.hostname}, port={parsed_url.port},
-                    path={parsed_url.path}""")
+        logger.info(f"Parsed DATABASE_URL: scheme={parsed_url.scheme}, host={parsed_url.hostname}, port={parsed_url.port}, path={parsed_url.path}")
         if parsed_url.path != '/library_db':
-            raise ValueError(f"""Invalid database name in DATABASE_URL:
-                             {parsed_url.path}, expected '/library_db'""")
-        engine = create_engine(settings.DATABASE_URL, echo=True)
+            raise ValueError(f"Invalid database name in DATABASE_URL: {parsed_url.path}, expected '/library_db'")
+        engine = create_engine(settings.DATABASE_URL, echo=True, connect_args={'dbname': 'library_db'})
         conn = engine.connect()
         logger.info(f"Successfully connected to database: {conn}")
         conn.close()
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False,
-                                    bind=engine)
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         session = SessionLocal()
         try:
             overdue_date = datetime.utcnow() - timedelta(days=14)
-            overdue_borrows = session.query(Borrow)\
-                .filter(Borrow.return_date is None,
-                        Borrow.borrow_date < overdue_date).all()
+            overdue_borrows = session.query(Borrow).filter(Borrow.return_date == None, Borrow.borrow_date < overdue_date).all()
             for borrow in overdue_borrows:
                 member = session.query(Member).get(borrow.member_id)
                 book = session.query(Book).get(borrow.book_id)
@@ -161,8 +167,7 @@ def check_overdue_books():
                     body = f"""Dear {member.name},\n\nThe book '{book.title}'
                     is overdue. Please return it.\n\nThank you."""
                     send_email.delay(member.email, subject, body)
-                    logger.info(f"""Overdue email task triggered for
-                                borrow_id: {borrow.id}""")
+                    logger.info(f"Overdue email task triggered for borrow_id: {borrow.id}")
             return {"status": "Overdue emails sent"}
         except Exception as e:
             logger.error(f"check_overdue_books error: {e}")
@@ -170,6 +175,5 @@ def check_overdue_books():
         finally:
             session.close()
     except Exception as e:
-        logger.error(f"""Database connection error in
-                     check_overdue_books: {e}""")
-        return {"error": str(e)}
+        logger.error(f"Database connection error in check_overdue_books: {e}")
+        self.retry(countdown=60, exc=e)

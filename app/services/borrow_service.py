@@ -30,7 +30,7 @@ async def borrow_book(db: Session, book_id: int, member_id: int,
     db.add(borrow)
     db.commit()
     db.refresh(borrow)
-    return BorrowResponse.from_orm(borrow)
+    return await BorrowResponse.from_orm(borrow)
 
 
 async def return_book(db: Session, borrow_id: int, api_version: str = "v1") \
@@ -49,7 +49,7 @@ async def return_book(db: Session, borrow_id: int, api_version: str = "v1") \
     borrow.notification_sent = (api_version == "v2")
     db.commit()
     db.refresh(borrow)
-    return BorrowResponse.from_orm(borrow)
+    return await BorrowResponse.from_orm(borrow)
 
 
 async def get_member_borrows(db: Session,
@@ -58,4 +58,4 @@ async def get_member_borrows(db: Session,
     borrows = db.query(Borrow) \
         .filter(Borrow.member_id == member_id, Borrow.return_date.is_(None)) \
         .all()
-    return [BorrowResponse.from_orm(borrow) for borrow in borrows]
+    return await [BorrowResponse.from_orm(borrow) for borrow in borrows]

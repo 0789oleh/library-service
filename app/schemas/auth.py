@@ -1,13 +1,17 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class LoginRequest(BaseModel):
-    """Schema for user login."""
-    email: str = Field(..., description="Member's email address")
-    password: str = Field(..., description="Member's password")
+    email: str
+    password: str
+
+
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
 
 
 class TokenResponse(BaseModel):
-    """Schema for returning JWT token."""
     access_token: str
-    token_type: str = "bearer"
+    token_type: str

@@ -15,7 +15,7 @@ async def create_book(db: Session, book_data: BookCreate) -> BookResponse:
     db.add(book)
     db.commit()
     db.refresh(book)
-    return BookResponse.from_orm(book)
+    return await BookResponse.from_orm(book)
 
 
 async def get_book(db: Session, book_id: int) -> Book:
@@ -24,4 +24,4 @@ async def get_book(db: Session, book_id: int) -> Book:
     if not book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Book not found")
-    return book
+    return await book
