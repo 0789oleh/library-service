@@ -1,54 +1,42 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
+    build: .
     ports:
       - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/library_db
+      - REDIS_URL=redis://redis:6379/0
+      - SMTP_HOST=smtp.example.com
+      - SMTP_PORT=587
+      - SMTP_USER=user@example.com
+      - SMTP_PASSWORD=yourpassword
+      - JWT_SECRET_KEY=your_jwt_secret_key_here
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      - postgres
+      - redis
+  celery:
+    build: .
+    command: celery -A app.tasks.email_tasks:app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/library_db
+      - REDIS_URL=redis://redis:6379/0
+      - SMTP_HOST=smtp.example.com
+      - SMTP_PORT=587
+      - SMTP_USER=user@example.com
+      - SMTP_PASSWORD=yourpassword
+      - JWT_SECRET_KEY=your_jwt_secret_key_here
+    depends_on:
+      - redis
+      - postgres
   postgres:
     image: postgres:13
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: library_db
-    ports:
-      - "5432:5432"
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=library_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
   redis:
-    image: redis:6
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-  celery:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    command: celery -A app.tasks.email_tasks:app worker --loglevel=info
-    user: celeryuser
+    image: redis:6.2
 volumes:
   postgres_data:

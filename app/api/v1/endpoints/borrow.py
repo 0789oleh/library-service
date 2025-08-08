@@ -3,8 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.base import get_db
 from app.schemas.borrow import BorrowRequest, BorrowResponse
 from app.services.borrow_service import borrow_book, return_book, \
-      get_member_borrows
-from app.tasks.email_tasks import send_borrow_email, send_return_email
+    get_member_borrows
 from app.core.security import get_current_member
 from app.models.member import Member
 from typing import List
@@ -20,8 +19,7 @@ async def borrow_book_endpoint(
 ):
     """Borrow a book (v2, with email notification)."""
     borrow = borrow_book(db, request.book_id,
-                         request.member_id, api_version="v2")
-    send_borrow_email.delay(request.member_id, request.book_id)
+                         request.member_id, api_version="v1")
     return borrow
 
 
@@ -32,8 +30,7 @@ async def return_book_endpoint(
     current_member: Member = Depends(get_current_member)
 ):
     """Return a book (v2, with email notification)."""
-    borrow = return_book(db, borrow_id, api_version="v2")
-    send_return_email.delay(borrow.member_id, borrow.book_id)
+    borrow = return_book(db, borrow_id, api_version="v1")
     return borrow
 
 
