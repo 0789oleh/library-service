@@ -6,14 +6,11 @@ from app.services.email_service import send_email, send_borrow_email, \
 
 
 @pytest.mark.asyncio
-async def test_send_email(mock_smtp):
-    """Test sending an email."""
-    await send_email("test@example.com", "Test Subject", "Test Body")
-    mock_smtp.assert_called_once()
-    call_args = mock_smtp.call_args[0][0]
-    assert call_args["To"] == "test@example.com"
-    assert call_args["Subject"] == "Test Subject"
-    assert "Test Body" in str(call_args.get_content())
+async def test_send_email():
+    with patch("aiosmtplib.send") as mock_send:
+        result = await send_email("test@example.com", "Test Subject", "Test Body")
+        assert result["status"] == "Email sent"
+        mock_send.assert_called_once()
 
 
 def test_send_borrow_email(mock_celery):

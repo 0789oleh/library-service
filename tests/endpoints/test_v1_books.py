@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.models.base import get_db
 
 
 @pytest.fixture
@@ -11,11 +12,12 @@ def client(db_session):
             yield db_session
         finally:
             db_session.close()
-    app.dependency_overrides[app.get_db] = override_get_db
+    app.dependency_overrides[get_db] = override_get_db
     return TestClient(app)
 
 
-async def test_v1_create_book(client: TestClient):
+@pytest.mark.asyncio
+def test_v1_create_book(client: TestClient):
     """Test v1 book creation endpoint."""
     book_data = {"title": "1984", "author": "George Orwell", "total_copies": 5}
     response = client.post("/v1/books/", json=book_data)

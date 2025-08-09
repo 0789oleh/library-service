@@ -157,8 +157,8 @@ def check_overdue_books(self):
         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         session = SessionLocal()
         try:
-            overdue_date = datetime.utcnow() - timedelta(days=14)
-            overdue_borrows = session.query(Borrow).filter(Borrow.return_date == None, Borrow.borrow_date < overdue_date).all()
+            overdue_date = datetime.now() - timedelta(days=14)
+            overdue_borrows = session.query(Borrow).filter(Borrow.return_date is None, Borrow.borrow_date < overdue_date).all()
             for borrow in overdue_borrows:
                 member = session.query(Member).get(borrow.member_id)
                 book = session.query(Book).get(borrow.book_id)

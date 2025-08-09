@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
+from app.models.base import get_db
 from app.models.member import Member
 
 
@@ -13,10 +14,11 @@ def client(db_session):
             yield db_session
         finally:
             db_session.close()
-    app.dependency_overrides[app.get_db] = override_get_db
+    app.dependency_overrides[get_db] = override_get_db
     return TestClient(app)
 
 
+@pytest.mark.asyncio
 async def test_login(client: TestClient, db_session: Session):
     """Test login endpoint with valid credentials."""
     member = Member(email="test@example.com", name="Test User")

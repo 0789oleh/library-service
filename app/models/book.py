@@ -5,7 +5,9 @@ from sqlalchemy.orm import relationship
 
 class Book(AbstractBase):
     __tablename__ = "books"
-    title = Column(String, nullable=False)
+    title = Column(String(255), nullable=False)
+    author = Column(String(255), nullable=False)
+    total_copies = Column(Integer, nullable=False)
     available_copies = Column(Integer, nullable=False)
     borrows = relationship("Borrow", back_populates="book")
 
