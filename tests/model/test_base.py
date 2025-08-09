@@ -1,8 +1,7 @@
-import pytest
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 from datetime import datetime
-from app.models.base import get_db_session
+from app.models.base import get_db
 from app.models.book import Book
 from unittest.mock import patch
 from app.core.config import settings
@@ -34,11 +33,18 @@ def test_init_db(db_session: Session):
     assert "borrows" in inspector.get_table_names()
 
 
-def test_get_db_session(db_session: Session):
-    """Test that get_db_session returns a valid session."""
-    session = get_db_session(db_session)
-    assert isinstance(session, Session)
-    assert session.bind is not None
+def test_get_db_session():
+    """Test that get_db yields a valid session."""
+    # Get the session from the get_db generator
+    db_gen = get_db()
+    db = next(db_gen)  # Extract the session
+    assert isinstance(db, Session)
+    assert db.bind is not None
+    # Clean up the generator
+    try:
+        next(db_gen, None)  # Trigger the finally block to close the session
+    except StopIteration:
+        pass
 
 
 def test_updated_at_on_update(db_session: Session):

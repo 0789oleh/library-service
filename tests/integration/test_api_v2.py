@@ -1,21 +1,43 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from app.main import app
 from app.models.book import Book
 from app.models.member import Member
-from app.services.auth_service import get_password_hash
+from app.services.auth_service import create_access_token
 from unittest.mock import patch
 
 
-@pytest.mark.asyncio
+@pytest.fixture
+def client(db_session):
+    """Create a FastAPI test client with overridden DB dependency."""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            db_session.close()
+    app.dependency_overrides[app.get_db] = override_get_db
+    return TestClient(app)
+
+
+@pytest.fixture
+def auth_headers(db_session: Session):
+    """Create valid JWT token headers."""
+    member = Member(email="test@example.com", name="Test User")
+    member.set_password("testpassword")
+    db_session.add(member)
+    db_session.commit()
+    token = create_access_token({"sub": "test@example.com"})
+    return {"Authorization": f"Bearer {token}"}
+
+
 async def test_v2_full_flow(client: TestClient,
                             db_session: Session, mock_celery):
     """Test the full v2 API flow: login, create book, borrow, return,
     list borrows with notifications."""
     # Create a member
-    hashed_password = get_password_hash("testpassword")
-    member = Member(email="test@example.com", name="Test User",
-                    hashed_password=hashed_password)
+    member = Member(email="test@example.com", name="Test User")
+    member.set_password("testpassword")
     db_session.add(member)
     db_session.commit()
 
@@ -24,7 +46,6 @@ async def test_v2_full_flow(client: TestClient,
                            json={"email": "test@example.com",
                                  "password": "testpassword"})
     assert response.status_code == 200
-    token = response.json()["access_token"]
 
     # Create a book
     book_data = {"title": "1984", "author": "George Orwell", "total_copies": 5}

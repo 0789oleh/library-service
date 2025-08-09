@@ -1,57 +1,83 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from app.main import app
 from app.models.book import Book
 from app.models.member import Member
-from app.services.auth_service import get_password_hash
+from app.services.auth_service import create_access_token
+from unittest.mock import patch
 
 
-@pytest.mark.asyncio
-async def test_v1_full_flow(client: TestClient, db_session: Session):
-    """Test the full v1 API flow: login, create book,
-      borrow, return, list borrows."""
+@pytest.fixture
+def client(db_session):
+    """Create a FastAPI test client with overridden DB dependency."""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            db_session.close()
+    app.dependency_overrides[app.get_db] = override_get_db
+    return TestClient(app)
+
+
+@pytest.fixture
+def auth_headers(db_session: Session):
+    """Create valid JWT token headers."""
+    member = Member(email="test@example.com", name="Test User")
+    member.set_password("testpassword")
+    db_session.add(member)
+    db_session.commit()
+    token = create_access_token({"sub": "test@example.com"})
+    return {"Authorization": f"Bearer {token}"}
+
+
+async def test_full_flow(client: TestClient, db_session: Session, auth_headers):
+    """Test the full API flow: login, create book, borrow, return, list borrows."""
     # Create a member
-    hashed_password = get_password_hash("testpassword")
-    member = Member(email="test@example.com", name="Test User",
-                    hashed_password=hashed_password)
+    member = Member(email="test@example.com", name="Test User")
+    member.set_password("testpassword")
     db_session.add(member)
     db_session.commit()
 
     # Login
-    response = client.post("/v1/auth/login", json={"email": "test@example.com",
-                                                   "password": "testpassword"})
+    response = client.post("/api/v1/login", json={"email": "test@example.com", "password": "testpassword"})
     assert response.status_code == 200
-    token = response.json()["access_token"]
+    assert response.json()["token_type"] == "bearer"
 
     # Create a book
     book_data = {"title": "1984", "author": "George Orwell", "total_copies": 5}
-    response = client.post("/v1/books/", json=book_data)
+    response = client.post("/api/v1/books", json=book_data, headers=auth_headers)
     assert response.status_code == 200
     book_id = response.json()["id"]
     assert response.json()["available_copies"] == 5
 
     # Borrow the book
-    response = client.post("/v1/borrow/",
-                           json={"book_id": book_id, "member_id": member.id})
-    assert response.status_code == 200
-    borrow_id = response.json()["id"]
-    assert response.json()["notification_sent"] is False
-    assert db_session.query(Book).get(book_id).available_copies == 4
+    with patch("app.tasks.email_tasks.send_borrow_email") as mock_email:
+        response = client.post(
+            "/api/v1/borrow",
+            json={"book_id": book_id, "member_id": member.id},
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        borrow_id = response.json()["id"]
+        assert response.json()["notification_sent"] is False
+        assert db_session.query(Book).get(book_id).available_copies == 4
+        mock_email.delay.assert_called_once_with(borrow_id)
 
     # List borrowed books
-    response = client.get(f"/v1/borrow/member/{member.id}")
+    response = client.get(f"/api/v1/borrow/member/{member.id}", headers=auth_headers)
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["book_id"] == book_id
 
     # Return the book
-    response = client.post(f"/v1/borrow/{borrow_id}/return")
+    response = client.post(f"/api/v1/borrow/{borrow_id}/return", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["return_date"] is not None
     assert response.json()["notification_sent"] is False
     assert db_session.query(Book).get(book_id).available_copies == 5
 
     # List borrowed books (should be empty)
-    response = client.get(f"/v1/borrow/member/{member.id}")
+    response = client.get(f"/api/v1/borrow/member/{member.id}", headers=auth_headers)
     assert response.status_code == 200
     assert len(response.json()) == 0

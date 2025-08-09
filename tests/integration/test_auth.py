@@ -1,10 +1,8 @@
-import pytest
 from fastapi.testclient import TestClient
-from app.main import app
 from app.models.member import Member
 from sqlalchemy.orm import Session
 
-@pytest.mark.asyncio
+
 async def test_register_member(client: TestClient, db_session: Session):
     response = client.post("/api/v1/register", json={
         "name": "John Doe",
@@ -21,7 +19,7 @@ async def test_register_member(client: TestClient, db_session: Session):
     assert member is not None
     assert member.verify_password("secret88")
 
-@pytest.mark.asyncio
+
 async def test_register_duplicate_email(client: TestClient, db_session: Session):
     client.post("/api/v1/register", json={
         "name": "John Doe",

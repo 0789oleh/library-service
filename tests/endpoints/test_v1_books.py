@@ -15,7 +15,6 @@ def client(db_session):
     return TestClient(app)
 
 
-@pytest.mark.asyncio
 async def test_v1_create_book(client: TestClient):
     """Test v1 book creation endpoint."""
     book_data = {"title": "1984", "author": "George Orwell", "total_copies": 5}

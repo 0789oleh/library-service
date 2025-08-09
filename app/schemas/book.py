@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class BookBase(BaseModel):
@@ -7,7 +7,7 @@ class BookBase(BaseModel):
     author: str = Field(..., description="Author of the book", max_length=100)
     total_copies: int = Field(..., description="Total number of copies", ge=1)
 
-    @validator("total_copies")
+    @field_validator("total_copies")
     def validate_copies(cls, value):
         if value < 1:
             raise ValueError("Total copies must be at least 1")
