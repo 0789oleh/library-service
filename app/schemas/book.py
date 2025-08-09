@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class BookBase(BaseModel):
@@ -12,6 +12,9 @@ class BookBase(BaseModel):
         if value < 1:
             raise ValueError("Total copies must be at least 1")
         return value
+    model_config = ConfigDict(
+        from_attributes=True  # Enable ORM mode for SQLAlchemy integration
+    )
 
 
 class BookCreate(BookBase):
@@ -26,5 +29,6 @@ class BookResponse(BookBase):
                                   description="Number of available copies",
                                   ge=0)
 
-    class Config:
-        from_attributes = True  # Enable ORM mode for SQLAlchemy integration
+    model_config = ConfigDict(
+        from_attributes=True  # Enable ORM mode for SQLAlchemy integration
+    )

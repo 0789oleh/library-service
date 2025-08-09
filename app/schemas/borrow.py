@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional
 
@@ -7,6 +7,9 @@ class BorrowRequest(BaseModel):
     """Schema for borrowing a book."""
     book_id: int = Field(..., description="ID of the book to borrow")
     member_id: int = Field(..., description="ID of the borrowing member")
+    model_config = ConfigDict(
+        from_attributes=True  # Enable ORM mode for SQLAlchemy integration
+    )
 
 
 class BorrowResponse(BaseModel):
@@ -23,6 +26,9 @@ class BorrowResponse(BaseModel):
                                               description='''Whether
                                               email notification
                                               was sent (v2 only)''')
+    model_config = ConfigDict(
+        from_attributes=True  # Enable ORM mode for SQLAlchemy integration
+    )
 
 
 class BorrowCreate(BaseModel):
@@ -32,7 +38,6 @@ class BorrowCreate(BaseModel):
     notification_sent: Optional[bool] = Field(
         False, description="Whether to send a notification (v2 only)"
     )
-
-
-class Config:
-    from_attributes = True  # Enable ORM mode for SQLAlchemy integration
+    model_config = ConfigDict(
+        from_attributes=True  # Enable ORM mode for SQLAlchemy integration
+    )

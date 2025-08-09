@@ -29,6 +29,38 @@ def set_test_db():
 
 
 @pytest.mark.asyncio
+async def test_register_member(client: TestClient, db_session: Session, set_test_db):
+    """Test member registration endpoint."""
+    # Use a unique email to avoid IntegrityError
+    unique_email = "test_register@example.com"
+    member_data = {
+        "name": "Test User",
+        "email": unique_email,
+        "password": "testpassword"
+    }
+
+    # Send POST request to register endpoint
+    response = client.post("/api/v1/register", json=member_data)
+
+    # Validate response
+    assert response.status_code == 201, f"Expected status 201, got {response.status_code}"
+    response_data = response.json()
+    assert response_data["email"] == member_data["email"], "Email mismatch in response"
+    assert response_data["name"] == member_data["name"], "Name mismatch in response"
+    assert "id" in response_data, "Response missing 'id' field"
+    assert response_data["id"] is not None, "Expected non-null 'id' in response"
+
+    # Verify database state
+    member = db_session.query(Member).filter(Member.email == unique_email).first()
+    assert member is not None, "Member not found in database"
+    assert member.name == member_data["name"], "Database name mismatch"
+    assert member.verify_password(member_data["password"]), "Password verification failed"
+
+    # Clean up session
+    db_session.rollback()
+
+
+@pytest.mark.asyncio
 async def test_login(client: TestClient, db_session: Session, set_test_db):
     """Test login endpoint with valid credentials."""
     # Create a member
@@ -38,7 +70,7 @@ async def test_login(client: TestClient, db_session: Session, set_test_db):
     db_session.commit()
 
     # Test login
-    response = await client.post("/api/v1/login", json={"email": "test@example.com", "password": "testpassword"})
+    response = client.post("/api/v1/login", json={"email": "test@example.com", "password": "testpassword"})
     assert response.status_code == 200
     assert response.json()["token_type"] == "bearer"
     assert "access_token" in response.json()
@@ -52,6 +84,6 @@ async def test_login_invalid_credentials(client: TestClient, db_session: Session
     member.set_password("testpassword")
     db_session.add(member)
     db_session.commit()
-    response = await client.post("/api/v1/login", json={"email": "unique@example.com", "password": "wrongpassword"})
+    response = client.post("/api/v1/login", json={"email": "unique@example.com", "password": "wrongpassword"})
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid credentials"

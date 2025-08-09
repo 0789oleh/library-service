@@ -23,18 +23,19 @@ def mock_settings():
         yield mock_settings
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def db_session():
-    """Create an in-memory SQLite database for tests."""
-    engine = create_engine("sqlite:///:memory:", echo=False)
-    Base.metadata.create_all(bind=engine)
+    """Create an in-memory SQLite session for tests."""
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = SessionLocal()
     try:
         yield session
     finally:
+        session.rollback()
         session.close()
-        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 
 @pytest.fixture
