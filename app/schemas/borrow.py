@@ -24,5 +24,15 @@ class BorrowResponse(BaseModel):
                                               email notification
                                               was sent (v2 only)''')
 
-    class Config:
-        from_attributes = True  # Enable ORM mode for SQLAlchemy integration
+
+class BorrowCreate(BaseModel):
+    """Schema for creating a new borrow record."""
+    book_id: int = Field(..., description="ID of the book to borrow")
+    member_id: int = Field(..., description="ID of the borrowing member")
+    notification_sent: Optional[bool] = Field(
+        False, description="Whether to send a notification (v2 only)"
+    )
+
+
+class Config:
+    from_attributes = True  # Enable ORM mode for SQLAlchemy integration

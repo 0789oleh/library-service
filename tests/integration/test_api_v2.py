@@ -32,7 +32,8 @@ def auth_headers(db_session: Session):
     return {"Authorization": f"Bearer {token}"}
 
 
-async def test_v2_full_flow(client: TestClient,
+@pytest.mark.asyncio
+def test_v2_full_flow(client: TestClient,
                             db_session: Session, mock_celery):
     """Test the full v2 API flow: login, create book, borrow, return,
     list borrows with notifications."""

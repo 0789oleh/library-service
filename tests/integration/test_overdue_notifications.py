@@ -19,7 +19,7 @@ async def test_overdue_notification(db_session: Session, mock_smtp):
     borrow = Borrow(
         book=book,
         member=member,
-        created_at=datetime.utcnow() - timedelta(days=15),  # Overdue by 1 day
+        created_at=datetime.now() - timedelta(days=15),  # Overdue by 1 day
         notification_sent=False
     )
     db_session.add_all([book, member, borrow])

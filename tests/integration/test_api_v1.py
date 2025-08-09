@@ -32,7 +32,8 @@ def auth_headers(db_session: Session):
     return {"Authorization": f"Bearer {token}"}
 
 
-async def test_full_flow(client: TestClient, db_session: Session, auth_headers):
+@pytest.mark.asyncio
+def test_full_flow(client: TestClient, db_session: Session, auth_headers):
     """Test the full API flow: login, create book, borrow, return, list borrows."""
     # Create a member
     member = Member(email="test@example.com", name="Test User")

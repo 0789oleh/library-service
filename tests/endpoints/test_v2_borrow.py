@@ -32,7 +32,8 @@ def auth_headers(db_session: Session):
     return {"Authorization": f"Bearer {token}"}
 
 
-async def test_borrow_book_authorized(client: TestClient, db_session: Session, auth_headers):
+@pytest.mark.asyncio
+def test_borrow_book_authorized(client: TestClient, db_session: Session, auth_headers):
     """Test borrow book endpoint with valid authorization."""
     book = Book(title="1984", author="George Orwell", total_copies=5, available_copies=5)
     member = db_session.query(Member).filter(Member.email == "test@example.com").first()
@@ -51,7 +52,8 @@ async def test_borrow_book_authorized(client: TestClient, db_session: Session, a
         mock_email.delay.assert_called_once_with(response.json()["id"])
 
 
-async def test_borrow_book_unauthorized(client: TestClient, db_session: Session):
+@pytest.mark.asyncio
+def test_borrow_book_unauthorized(client: TestClient, db_session: Session):
     """Test borrow book endpoint with missing/invalid token."""
     book = Book(title="1984", author="George Orwell", total_copies=5, available_copies=5)
     member = Member(email="test@example.com", name="Test User")

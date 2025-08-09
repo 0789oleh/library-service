@@ -1,3 +1,4 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -15,17 +16,14 @@ Base = declarative_base()
 def get_engine():
     try:
         settings = get_settings()
-        logger.info(f"""Attempting to connect to DATABASE_URL:
-                    {settings.DATABASE_URL}""")
-        parsed_url = urllib.parse.urlparse(settings.DATABASE_URL)
-        logger.info(f"""Parsed DATABASE_URL: scheme={parsed_url.scheme},
-                    host={parsed_url.hostname}, port={parsed_url.port},
-                    path={parsed_url.path}""")
-        if parsed_url.path != '/library_db':
-            raise ValueError(f"""Invalid database name in DATABASE_URL:
-                             {parsed_url.path}, expected '/library_db'""")
-        engine = create_engine(settings.DATABASE_URL, echo=True,
-                               connect_args={'dbname': 'library_db'})
+        database_url = os.getenv("TEST_DATABASE_URL", settings.DATABASE_URL)
+        logger.info(f"Attempting to connect to DATABASE_URL: {database_url}")
+        parsed_url = urllib.parse.urlparse(database_url)
+        logger.info(f"Parsed DATABASE_URL: scheme={parsed_url.scheme}, host={parsed_url.hostname}, port={parsed_url.port}, path={parsed_url.path}")
+        if parsed_url.scheme == "postgresql" and parsed_url.path != "/library_db":
+            raise ValueError(f"Invalid database name in DATABASE_URL: {parsed_url.path}, expected '/library_db'")
+        connect_args = {"check_same_thread": False} if parsed_url.scheme == "sqlite" else {}
+        engine = create_engine(database_url, echo=True, connect_args=connect_args)
         conn = engine.connect()
         logger.info(f"Successfully connected to database: {conn}")
         conn.close()

@@ -1,10 +1,18 @@
+import pytest
+import os
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.models.base import get_db
 from app.models.book import Book
-from unittest.mock import patch
-from app.core.config import settings
+
+
+@pytest.fixture
+def set_test_db():
+    """Set TEST_DATABASE_URL for in-memory SQLite."""
+    os.environ["TEST_DATABASE_URL"] = "sqlite:///:memory:"
+    yield
+    os.environ.pop("TEST_DATABASE_URL", None)
 
 
 def test_abstract_base_fields(db_session: Session):
@@ -33,16 +41,14 @@ def test_init_db(db_session: Session):
     assert "borrows" in inspector.get_table_names()
 
 
-def test_get_db_session():
+def test_get_db_session(set_test_db):
     """Test that get_db yields a valid session."""
-    # Get the session from the get_db generator
     db_gen = get_db()
-    db = next(db_gen)  # Extract the session
+    db = next(db_gen)
     assert isinstance(db, Session)
     assert db.bind is not None
-    # Clean up the generator
     try:
-        next(db_gen, None)  # Trigger the finally block to close the session
+        next(db_gen, None)  # Trigger session close
     except StopIteration:
         pass
 
