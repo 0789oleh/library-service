@@ -17,3 +17,10 @@ docker compose up --build
 Swagger is available at http://localhost:8000/docs
 
 ![Swagger docs](./image.png)
+
+
+4. Test application 
+
+```bash 
+pytest -v tests/
+```
