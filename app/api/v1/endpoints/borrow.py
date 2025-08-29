@@ -4,7 +4,7 @@ from app.models.base import get_db
 from app.schemas.borrow import BorrowRequest, BorrowResponse
 from app.services.borrow_service import borrow_book, return_book, \
     get_member_borrows
-from app.core.security import get_current_member
+from app.core.security import get_current_user
 from app.models.member import Member
 from typing import List
 
@@ -15,7 +15,7 @@ router = APIRouter()
 async def borrow_book_endpoint(
     request: BorrowRequest,
     db: Session = Depends(get_db),
-    current_member: Member = Depends(get_current_member)
+    current_member: Member = Depends(get_current_user)
 ):
     """Borrow a book (v2, with email notification)."""
     borrow = borrow_book(db, request.book_id,
@@ -27,7 +27,7 @@ async def borrow_book_endpoint(
 async def return_book_endpoint(
     borrow_id: int,
     db: Session = Depends(get_db),
-    current_member: Member = Depends(get_current_member)
+    current_member: Member = Depends(get_current_user)
 ):
     """Return a book (v2, with email notification)."""
     borrow = return_book(db, borrow_id, api_version="v1")
@@ -38,7 +38,7 @@ async def return_book_endpoint(
 def get_member_borrows_endpoint(
     member_id: int,
     db: Session = Depends(get_db),
-    current_member: Member = Depends(get_current_member)
+    current_member: Member = Depends(get_current_user)
 ):
     """Get all borrowed books for a member."""
     return get_member_borrows(db, member_id)

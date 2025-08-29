@@ -1,13 +1,10 @@
-FROM python:3.10
+FROM python:3.11
 
-RUN apt-get update && apt-get install -y --no-install-recommends adduser && rm -rf /var/lib/apt/lists/*
-RUN useradd -m -u 1000 -s /bin/bash celeryuser
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ADD . /app
 WORKDIR /app
-# Install uv
-RUN pip install uv
-COPY requirements.txt .
-RUN uv pip install --system --no-cache-dir -r requirements.txt
-COPY . .
-RUN chown -R celeryuser:celeryuser /app
-USER celeryuser
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN uv sync --locked
+
+# Просто запускайте от root
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    image: myapp:latest
     ports:
       - "8000:8000"
     environment:
@@ -16,7 +17,7 @@ services:
       - redis
   celery:
     build: .
-    command: celery -A app.tasks.email_tasks:app worker --loglevel=info
+    command: uv run python -m celery -A app.tasks.email_tasks:app worker --loglevel=info
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/library_db
       - REDIS_URL=redis://redis:6379/0

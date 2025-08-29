@@ -24,3 +24,9 @@ class TokenResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True  # Enable ORM mode for SQLAlchemy integration
     )
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    model_config = ConfigDict(from_attributes=True)
