@@ -24,3 +24,9 @@ Swagger is available at http://localhost:8000/docs
 ```bash 
 pytest -v tests/
 ```
+
+5. Test endpoints 
+
+```bash
+source test-api.sh
+```
